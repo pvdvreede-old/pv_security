@@ -48,9 +48,18 @@ function pvs_uninstall() {
 }
 
 function pvs_add_post_meta_box() {
- 
-    add_meta_box('pv_document_items', 'Post Security', 'pvs_render_post_security_meta_box');
     
+    $types = array(
+        'post',
+        'page',
+        'pv_document'
+        );
+    
+    foreach ( $types as $type ) {
+ 
+        add_meta_box('pv_security_roles', 'Post Security', 'pvs_render_post_security_meta_box', $type, 'side', 'high');
+    
+    }
 }
 
 function pvs_render_post_security_meta_box( $post ) {
@@ -59,9 +68,11 @@ function pvs_render_post_security_meta_box( $post ) {
     // Use nonce for verification
     wp_nonce_field(plugin_basename(__FILE__), 'pv_security_noncename');
     
+    $output = '<p>Select which user roles can see this post. Not selecting any means the whole can see it.</p>';
+    
     foreach ($wp_roles->get_names() as $role) {
     
-        $output = '<p>{$role}<input type="checkbox" name="pv_security_role[] value="{$role}" /></p>';
+        $output .= '<p><input type="checkbox" name="pv_security_role[]" value="' . $role . '" />  ' . $role . '" /></p>';
     
     }
     
