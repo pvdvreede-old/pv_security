@@ -21,6 +21,7 @@ add_action('save_post', 'pvs_save_post_security_data');
 add_action('deleted_post', 'pvs_delete_post_security_data');
 
 add_filter('posts_join', 'pvs_join_security');
+add_filter('posts_where', 'pvs_where_security');
 
 function pvs_install() {
     global $wpdb;
@@ -124,10 +125,19 @@ function pvs_join_security($join) {
     global $wpdb;
 
     if (!is_user_logged_in()) {
-        $join .= " RIGHT JOIN " . PV_SECURITY_TABLENAME . " pvs ON " . $wpdb->posts . ".ID = pvs.object_id ";
+        $join .= " LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs ON " . $wpdb->posts . ".ID = pvs.object_id ";
         $join .= "AND pvs.object_type = 'post' ";
     }
 
     return $join;
 }
 
+function pvs_where_security($where) {
+    global $wpdb;
+    
+    if (!is_user_logged_in()) {
+       $where .= " AND pvs.object_id IS NULL "; 
+    }
+    
+    return $where;
+}
