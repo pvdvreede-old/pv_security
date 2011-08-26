@@ -12,19 +12,17 @@ License: GPL2
 
 DEFINE( 'PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item' );
 
-register_activation_hook(__FILE__, 'pvs_install');
-register_deactivation_hook(__FILE__, 'pvs_uninstall');
+register_activation_hook(__FILE__, 'pvs_install' );
+register_deactivation_hook(__FILE__, 'pvs_uninstall' );
  
-add_action('add_meta_boxes', 'pvs_add_post_meta_box');
-add_action('save_post', 'pvs_save_post_security_data');
+add_action( 'add_meta_boxes', 'pvs_add_post_meta_box' );
+add_action( 'save_post', 'pvs_save_post_security_data' );
 
 add_filter( 'posts_join', 'pvs_join_security' );
-add_filter( 'posts_where', 'pvs_where_security' );
  
 function pvs_install () {
     global $wpdb;
  
-
     $sql = "CREATE TABLE " . PV_SECURITY_TABLENAME . " (
       id mediumint(9) NOT NULL AUTO_INCREMENT,
       role mediumint(9) NOT NULL,
@@ -53,7 +51,7 @@ function pvs_add_post_meta_box() {
     
 }
 
-function pvs_render_post_security_meta_box($post) {
+function pvs_render_post_security_meta_box( $post ) {
     global $wp_roles;
     
     // Use nonce for verification
@@ -61,26 +59,48 @@ function pvs_render_post_security_meta_box($post) {
     
     foreach ($wp_roles->get_names() as $role) {
     
-        $output = '<p>{$role}<input type="checkbox" name="pv_security_role[]" /></p>';
+        $output = '<p>{$role}<input type="checkbox" name="pv_security_role[] value={$role}" /></p>';
     
     }
     
     echo $output;   
 }
 
-function pvs_save_post_security_data($post_id) {
+function pvs_save_post_security_data( $post_id ) {
     
     
     
 }
 
-function pvs_save_post_security($object_id, $role, $object_type) {
+function pvs_save_post_security( $object_id, $role, $object_type ) {
     global $wpdb;
     
     $wpdb->insert( PV_SECURITY_TABLENAME, array(
             'object_id' => $object_id,
             'role' => $role,
-            'object_type' => $object_type
+            'object_type' => $object_type,
+            'created_date' => date( 'Y-m-d H:m:s' )
         ));
                            
 }
+
+function pvs_join_security( $join ) {
+    
+    if ( is_user_logged_in() ) {
+    
+        $current_user = wp_get_current_user();
+        $role = $current_user->roles[0];
+    
+    } else  {
+        
+        $role = 'anonymous';
+        
+    }
+    
+    $join .= " RIGHT JOIN " . PV_SECURITY_TABLENAME . " ON " . $wpdb->posts . ".ID = " . PV_SECURITY_TABLENAME .".object_id ";
+    $join .= "AND " . PV_SECURITY_TABLENAME . ".object_type = 'post' ";
+    $join .= "AND " . PV_SECURITY_TABLENAME . ".role = '" . $role . "' ";
+   
+    return $join;
+}
+
