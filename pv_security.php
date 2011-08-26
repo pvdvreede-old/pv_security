@@ -110,6 +110,7 @@ function pvs_save_post_security( $object_id, $role, $object_type ) {
 }
 
 function pvs_join_security( $join ) {
+    global $wpdb;
     
     if ( is_user_logged_in() ) {
     
