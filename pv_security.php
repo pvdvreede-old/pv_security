@@ -1,36 +1,36 @@
 <?php
 
 /*
-Plugin Name: pv_Security
-Plugin URI: http://www.vdvreede.net
-Description: Adds user role security to posts and categories.
-Version: 0.5
-Author: Paul Van de Vreede
-Author URI: http://www.vdvreede.net
-License: GPL2
-*/
+  Plugin Name: pv_Security
+  Plugin URI: http://www.vdvreede.net
+  Description: Adds user role security to posts and categories.
+  Version: 0.5
+  Author: Paul Van de Vreede
+  Author URI: http://www.vdvreede.net
+  License: GPL2
+ */
+global $wpdb;
 
-DEFINE( 'PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item' );
+DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
 
-register_activation_hook(__FILE__, 'pvs_install' );
-register_deactivation_hook(__FILE__, 'pvs_uninstall' );
- 
-add_action( 'add_meta_boxes', 'pvs_add_post_meta_box' );
-add_action( 'save_post', 'pvs_save_post_security_data' );
+register_activation_hook(__FILE__, 'pvs_install');
 
-add_action( 'deleted_post', 'pvs_delete_post_security_data' );
+add_action('add_meta_boxes', 'pvs_add_post_meta_box');
+add_action('save_post', 'pvs_save_post_security_data');
 
-add_filter( 'posts_join', 'pvs_join_security' );
- 
-function pvs_install () {
+add_action('deleted_post', 'pvs_delete_post_security_data');
+
+add_filter('posts_join', 'pvs_join_security');
+
+function pvs_install() {
     global $wpdb;
- 
+
     $sql = "CREATE TABLE " . PV_SECURITY_TABLENAME . " (
       id mediumint(9) NOT NULL AUTO_INCREMENT,
       role mediumint(9) NOT NULL,
       object_id mediumint(9) NOT NULL,
-      object_type varchar(25) NOT NULL
-      created_date datetime NOT NULL,
+      object_type varchar(25) NOT NULL,
+      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
       modified_date datetime NULL,
 	  PRIMARY KEY  id (id)
 	);";
@@ -39,105 +39,101 @@ function pvs_install () {
     dbDelta($sql);
 }
 
-function pvs_uninstall() {   
+function pvs_uninstall() {
     global $wpdb;
-    
-    $sql = $wpdb->prepare( "DROP TABLE " . PV_SECURITY_TABLENAME . ";" ); 
-    
+
+    $sql = $wpdb->prepare("DROP TABLE " . PV_SECURITY_TABLENAME . ";");
+
     $wpdb->query($sql);
 }
 
 function pvs_add_post_meta_box() {
-    
+
     $types = array(
         'post',
         'page',
         'pv_document'
-        );
-    
-    foreach ( $types as $type ) {
- 
+    );
+
+    foreach ($types as $type) {
+
         add_meta_box('pv_security_roles', 'Post Security', 'pvs_render_post_security_meta_box', $type, 'side', 'high');
-    
     }
 }
 
 function pvs_render_post_security_meta_box( $post ) {
-    global $wp_roles;
-    
+
     // Use nonce for verification
     wp_nonce_field(plugin_basename(__FILE__), 'pv_security_noncename');
+
+    $output = '<p>Select which user roles can see this post. Not selecting any means the whole world can see it.</p>';
     
-    $output = '<p>Select which user roles can see this post. Not selecting any means the whole can see it.</p>';
+    $roles = array(
+        'public',
+        'members'
+    );
     
-    foreach ($wp_roles->get_names() as $role) {
-    
-        $output .= '<p><input type="checkbox" name="pv_security_role[]" value="' . $role . '" />  ' . $role . '" /></p>';
-    
+    foreach ($roles as $role) {
+        $output .= '<p><input type="radio" name="pv_security_role" value="' . $role . '" />  ' . ucfirst($role) . '</p>';
     }
-    
-    echo $output;   
+
+    echo $output;
 }
 
-function pvs_save_post_security_data( $post_id ) {
-    
+function pvs_save_post_security_data($post_id) {
+
     // verify if this is an auto save routine. 
     // If it is our form has not been submitted, so we dont want to do anything
-    if (defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE)
+    if (defined('DOING_AUTOSAVE') && DOING_AUTOSAVE)
         return;
 
-    if (!wp_verify_nonce( $_POST['pv_security_noncename'], plugin_basename( __FILE__ ) ) )
+    if (!wp_verify_nonce($_POST['pv_security_noncename'], plugin_basename(__FILE__)))
         return;
-    
-    foreach ( $_POST['pv_security_role'] as $role ) {
-    
-        pvs_save_post_security( $post_id, $role, 'post' );
-    
+
+    foreach ($_POST['pv_security_role'] as $role) {
+
+        pvs_save_post_security($post_id, $role, 'post');
     }
-      
 }
 
-function pvs_delete_post_security_data( $post_id ) {
+function pvs_delete_post_security_data($post_id) {
     global $wpdb;
-    
-    $sql = "DELETE FROM " . PV_SECURITY_TABLENAME . " WHERE " . PV_SECURITY_TABLENAME . ".object_id = " . $post_id ." ";
+
+    $sql = "DELETE FROM " . PV_SECURITY_TABLENAME . " WHERE " . PV_SECURITY_TABLENAME . ".object_id = " . $post_id . " ";
     $sql .= "AND " . PV_SECURITY_TABLENAME . ".object_type = 'post' ";
-    
-    $sql = $wpdb->prepare( $sql );
-    
-    $wpdb->query( $sql );
+
+    $sql = $wpdb->prepare($sql);
+
+    $wpdb->query($sql);
 }
 
-function pvs_save_post_security( $object_id, $role, $object_type ) {
+function pvs_save_post_security($object_id, $role, $object_type) {
     global $wpdb;
-    
-    $wpdb->insert( PV_SECURITY_TABLENAME, array(
-            'object_id' => $object_id,
-            'role' => $role,
-            'object_type' => $object_type,
-            'created_date' => date( 'Y-m-d H:m:s' )
-        ));
-                           
+
+    $wpdb->insert(PV_SECURITY_TABLENAME, array(
+        'object_id' => $object_id,
+        'role' => $role,
+        'object_type' => $object_type,
+        'created_date' => date('Y-m-d H:m:s')
+    ));
 }
 
-function pvs_join_security( $join ) {
+function pvs_join_security($join) {
     global $wpdb;
-    
-    if ( is_user_logged_in() ) {
-    
+
+    if (is_user_logged_in()) {
+
         $current_user = wp_get_current_user();
         $role = $current_user->roles[0];
-    
-    } else  {
-        
+    } else {
+
         $role = 'anonymous';
-        
     }
-    
-    $join .= " RIGHT JOIN " . PV_SECURITY_TABLENAME . " ON " . $wpdb->posts . ".ID = " . PV_SECURITY_TABLENAME .".object_id ";
+
+    $join .= " RIGHT JOIN " . PV_SECURITY_TABLENAME . " ON " . $wpdb->posts . ".ID = " . PV_SECURITY_TABLENAME . ".object_id ";
     $join .= "AND " . PV_SECURITY_TABLENAME . ".object_type = 'post' ";
     $join .= "AND " . PV_SECURITY_TABLENAME . ".role = '" . $role . "' ";
-   
+
     return $join;
 }
 
