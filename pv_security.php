@@ -18,6 +18,8 @@ register_deactivation_hook(__FILE__, 'pvs_uninstall' );
 add_action( 'add_meta_boxes', 'pvs_add_post_meta_box' );
 add_action( 'save_post', 'pvs_save_post_security_data' );
 
+add_action( 'deleted_post', 'pvs_delete_post_security_data' );
+
 add_filter( 'posts_join', 'pvs_join_security' );
  
 function pvs_install () {
@@ -82,6 +84,17 @@ function pvs_save_post_security_data( $post_id ) {
     
     }
       
+}
+
+function pvs_delete_post_security_data( $post_id ) {
+    global $wpdb;
+    
+    $sql = "DELETE FROM " . PV_SECURITY_TABLENAME . " WHERE " . PV_SECURITY_TABLENAME . ".object_id = " . $post_id ." ";
+    $sql .= "AND " . PV_SECURITY_TABLENAME . ".object_type = 'post' ";
+    
+    $sql = $wpdb->prepare( $sql );
+    
+    $wpdb->query( $sql );
 }
 
 function pvs_save_post_security( $object_id, $role, $object_type ) {
