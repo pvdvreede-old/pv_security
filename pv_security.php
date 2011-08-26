@@ -59,7 +59,7 @@ function pvs_render_post_security_meta_box( $post ) {
     
     foreach ($wp_roles->get_names() as $role) {
     
-        $output = '<p>{$role}<input type="checkbox" name="pv_security_role[] value={$role}" /></p>';
+        $output = '<p>{$role}<input type="checkbox" name="pv_security_role[] value="{$role}" /></p>';
     
     }
     
@@ -68,8 +68,20 @@ function pvs_render_post_security_meta_box( $post ) {
 
 function pvs_save_post_security_data( $post_id ) {
     
+    // verify if this is an auto save routine. 
+    // If it is our form has not been submitted, so we dont want to do anything
+    if (defined( 'DOING_AUTOSAVE' ) && DOING_AUTOSAVE)
+        return;
+
+    if (!wp_verify_nonce( $_POST['pv_security_noncename'], plugin_basename( __FILE__ ) ) )
+        return;
     
+    foreach ( $_POST['pv_security_role'] as $role ) {
     
+        pvs_save_post_security( $post_id, $role, 'post' );
+    
+    }
+      
 }
 
 function pvs_save_post_security( $object_id, $role, $object_type ) {
