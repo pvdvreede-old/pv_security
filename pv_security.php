@@ -10,18 +10,22 @@ Author URI: http://www.vdvreede.net
 License: GPL2
 */
 
+DEFINE( 'PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item' );
+
 register_activation_hook(__FILE__, 'pvs_install');
 register_deactivation_hook(__FILE__, 'pvs_uninstall');
  
 add_action('add_meta_boxes', 'pvs_add_post_meta_box');
 add_action('save_post', 'pvs_save_post_security_data');
+
+add_filter( 'posts_join', 'pvs_join_security' );
+add_filter( 'posts_where', 'pvs_where_security' );
  
 function pvs_install () {
     global $wpdb;
-    
-    $table_name = $wpdb->prefix . "pvs_user_item"; 
+ 
 
-    $sql = "CREATE TABLE " . $table_name . " (
+    $sql = "CREATE TABLE " . PV_SECURITY_TABLENAME . " (
       id mediumint(9) NOT NULL AUTO_INCREMENT,
       role mediumint(9) NOT NULL,
       object_id mediumint(9) NOT NULL,
@@ -38,10 +42,9 @@ function pvs_install () {
 function pvs_uninstall() {   
     global $wpdb;
     
-    $table_name = $wpdb->prefix . "pvs_user_item";
+    $sql = $wpdb->prepare( "DROP TABLE " . PV_SECURITY_TABLENAME . ";" ); 
     
-    $sql = "DROP TABLE " . $table_name . ";"  
-    
+    $wpdb->query($sql);
 }
 
 function pvs_add_post_meta_box() {
@@ -74,8 +77,10 @@ function pvs_save_post_security_data($post_id) {
 function pvs_save_post_security($object_id, $role, $object_type) {
     global $wpdb;
     
-    $table_name = $wpdb->prefix . "pvs_user_item";
-    
-    $sql = "INSERT INTO ". $table_name . " (object_id, role, object_type)
-           VALUES (" . $object_id . ", '" . $role . "', '" . $object_type . "');";
+    $wpdb->insert( PV_SECURITY_TABLENAME, array(
+            'object_id' => $object_id,
+            'role' => $role,
+            'object_type' => $object_type
+        ));
+                           
 }
