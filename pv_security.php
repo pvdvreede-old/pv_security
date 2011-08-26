@@ -14,6 +14,7 @@ register_activation_hook(__FILE__, 'pvs_install');
 register_deactivation_hook(__FILE__, 'pvs_uninstall');
  
 add_action('add_meta_boxes', 'pvs_add_post_meta_box');
+add_action('save_post', 'pvs_save_post_security_data');
  
 function pvs_install () {
     global $wpdb;
@@ -22,9 +23,9 @@ function pvs_install () {
 
     $sql = "CREATE TABLE " . $table_name . " (
       id mediumint(9) NOT NULL AUTO_INCREMENT,
-      user_id mediumint(9) NOT NULL,
-      item_id mediumint(9) NOT NULL,
-      item_type varchar(25) NOT NULL
+      role mediumint(9) NOT NULL,
+      object_id mediumint(9) NOT NULL,
+      object_type varchar(25) NOT NULL
       created_date datetime NOT NULL,
       modified_date datetime NULL,
 	  PRIMARY KEY  id (id)
@@ -61,6 +62,20 @@ function pvs_render_post_security_meta_box($post) {
     
     }
     
-    echo $output;
+    echo $output;   
+}
+
+function pvs_save_post_security_data($post_id) {
     
+    
+    
+}
+
+function pvs_save_post_security($object_id, $role, $object_type) {
+    global $wpdb;
+    
+    $table_name = $wpdb->prefix . "pvs_user_item";
+    
+    $sql = "INSERT INTO ". $table_name . " (object_id, role, object_type)
+           VALUES (" . $object_id . ", '" . $role . "', '" . $object_type . "');";
 }
