@@ -1,5 +1,4 @@
 <?php
-
 /*
   Plugin Name: pv_Security
   Plugin URI: http://www.vdvreede.net
@@ -9,6 +8,9 @@
   Author URI: http://www.vdvreede.net
   License: GPL2
  */
+error_reporting(E_ALL);
+ini_set('display_errors', True);
+
 global $wpdb;
 
 DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
@@ -19,6 +21,9 @@ add_action('add_meta_boxes', 'pvs_add_post_meta_box');
 add_action('save_post', 'pvs_save_post_security_data');
 
 add_action('deleted_post', 'pvs_delete_post_security_data');
+
+add_action('admin_menu', 'pvs_add_settings_page');
+add_action('admin_init', 'pvs_init_settings');
 
 add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
@@ -49,6 +54,32 @@ function pvs_uninstall() {
     $wpdb->query($sql);
 }
 
+function pvs_add_settings_page() {
+    add_options_page('Security', 'Security', 'administrator', __FILE__, 'pvs_options_page');
+}
+
+function pvs_init_settings() {
+    register_setting('pv_security_options', 'pv_security_options');
+    add_settings_section('main_section', 'Main Settings', 'pvs_section_text', __FILE__);
+}
+
+function pvs_options_page() {
+    ?>
+    <div class="wrap">
+        <div class="icon32" id="icon-options-general"><br></div>
+        <h2>Security Settings</h2>
+        Settings for security around post and attachment visibility and access.
+        <form action="options.php" method="post">
+            <?php settings_fields('pv_security_options'); ?>
+            <?php do_settings_sections(__FILE__); ?>
+            <p class="submit">
+                <input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" />
+            </p>
+        </form>
+    </div>
+    <?php
+}
+
 function pvs_add_post_meta_box() {
 
     $types = array(
@@ -58,7 +89,6 @@ function pvs_add_post_meta_box() {
     );
 
     foreach ($types as $type) {
-
         add_meta_box('pv_security_roles', 'Post Security', 'pvs_render_post_security_meta_box', $type, 'side', 'high');
     }
 }
@@ -159,7 +189,6 @@ function pvs_where_security($where) {
 function pvs_exclude_categories($args) {
     throw new Exception("test");
     $args['exclude'] = array(6);
-    
+
     return $args;
-    
 }
