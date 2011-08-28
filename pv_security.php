@@ -8,9 +8,6 @@
   Author URI: http://www.vdvreede.net
   License: GPL2
  */
-error_reporting(E_ALL);
-ini_set('display_errors', True);
-
 global $wpdb;
 
 DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
@@ -73,7 +70,7 @@ function pvs_post_type_setting() {
 
     $types = get_post_types(array('_builtin' => false));
     $types[] = 'post';
-    $types[] = 'pages';
+    $types[] = 'page';
 
     foreach ($types as $type) {
 
@@ -105,11 +102,7 @@ function pvs_options_page() {
 
 function pvs_add_post_meta_box() {
 
-    $types = array(
-        'post',
-        'page',
-        'pv_document'
-    );
+    $types = get_option('pv_security_options');
 
     foreach ($types as $type) {
         add_meta_box('pv_security_roles', 'Post Security', 'pvs_render_post_security_meta_box', $type, 'side', 'high');
@@ -181,7 +174,8 @@ function pvs_save_post_security($object_id, $role, $object_type) {
 }
 
 function pvs_in_database($object_id, $object_type) {
-
+    global $wpdb;
+    
     $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
                                             WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = '" . $object_type . "';"));
 
