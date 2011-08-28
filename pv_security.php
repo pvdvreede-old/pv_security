@@ -22,6 +22,7 @@ add_action('deleted_post', 'pvs_delete_post_security_data');
 
 add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
+add_filter('list_cats_exlusions', 'pvs_exclude_categories');
 
 function pvs_install() {
     global $wpdb;
@@ -69,13 +70,20 @@ function pvs_render_post_security_meta_box($post) {
 
     $output = '<p>Select which user roles can see this post. Not selecting any means the whole world can see it.</p>';
 
+    $membership = pvs_in_database($post->ID, 'post');
+
     $roles = array(
-        'public',
-        'members'
+        'public' => true,
+        'members' => false
     );
 
-    foreach ($roles as $role) {
-        $output .= '<p><input type="radio" name="pv_security_role" value="' . $role . '" />  ' . ucfirst($role) . '</p>';
+    foreach ($roles as $role => $member) {
+        if ($member)
+            $checked = 'checked';
+        else
+            $checked = '';
+
+        $output .= '<p><input type="radio" name="pv_security_role" value="' . $role . '" ' . $checked . ' />  ' . ucfirst($role) . '</p>';
     }
 
     echo $output;
@@ -109,9 +117,7 @@ function pvs_delete_post_security_data($post_id) {
 function pvs_save_post_security($object_id, $role, $object_type) {
     global $wpdb;
 
-    $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = 'post'"));
-
-    if ($count == 0) {
+    if (!pvs_in_database($object_id, $object_type)) {
         $wpdb->insert(PV_SECURITY_TABLENAME, array(
             'object_id' => $object_id,
             'role' => $role,
@@ -119,6 +125,14 @@ function pvs_save_post_security($object_id, $role, $object_type) {
             'created_date' => date('Y-m-d H:m:s')
         ));
     }
+}
+
+function pvs_in_database($object_id, $object_type) {
+
+    $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
+                                            WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = '" . $object_type . "';"));
+
+    return ($count > 0);
 }
 
 function pvs_join_security($join) {
@@ -134,10 +148,18 @@ function pvs_join_security($join) {
 
 function pvs_where_security($where) {
     global $wpdb;
-    
+
     if (!is_user_logged_in()) {
-       $where .= " AND pvs.object_id IS NULL "; 
+        $where .= " AND pvs.object_id IS NULL ";
     }
-    
+
     return $where;
+}
+
+function pvs_exclude_categories($args) {
+    throw new Exception("test");
+    $args['exclude'] = array(6);
+    
+    return $args;
+    
 }
