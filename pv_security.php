@@ -61,6 +61,29 @@ function pvs_add_settings_page() {
 function pvs_init_settings() {
     register_setting('pv_security_options', 'pv_security_options');
     add_settings_section('main_section', 'Main Settings', 'pvs_section_text', __FILE__);
+    add_settings_field('pvs_post_types', 'Post types', 'pvs_post_type_setting', __FILE__, 'main_section');
+}
+
+function pvs_section_text() {
+    
+}
+
+function pvs_post_type_setting() {
+    $options = get_option('pv_security_options');
+
+    $types = get_post_types(array('_builtin' => false));
+    $types[] = 'post';
+    $types[] = 'pages';
+
+    foreach ($types as $type) {
+
+        $checked = '';
+
+        if (in_array($type, $options))
+            $checked = 'checked';
+
+        echo "<p><input type='checkbox' name='pv_security_options[]' value='{$type}' {$checked} />  " . ucwords($type) . "</p>";
+    }
 }
 
 function pvs_options_page() {
@@ -70,7 +93,7 @@ function pvs_options_page() {
         <h2>Security Settings</h2>
         Settings for security around post and attachment visibility and access.
         <form action="options.php" method="post">
-            <?php settings_fields('pv_security_options'); ?>
+    <?php settings_fields('pv_security_options'); ?>
             <?php do_settings_sections(__FILE__); ?>
             <p class="submit">
                 <input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" />
