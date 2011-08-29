@@ -22,6 +22,7 @@ add_action('deleted_post', 'pvs_delete_post_security_data');
 add_action('admin_menu', 'pvs_add_settings_page');
 add_action('admin_init', 'pvs_init_settings');
 
+add_filter('get_terms', 'pvs_filter_categories');
 add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
 add_filter('list_cats_exlusions', 'pvs_exclude_categories');
@@ -90,7 +91,7 @@ function pvs_options_page() {
         <h2>Security Settings</h2>
         Settings for security around post and attachment visibility and access.
         <form action="options.php" method="post">
-    <?php settings_fields('pv_security_options'); ?>
+            <?php settings_fields('pv_security_options'); ?>
             <?php do_settings_sections(__FILE__); ?>
             <p class="submit">
                 <input name="Submit" type="submit" class="button-primary" value="<?php esc_attr_e('Save Changes'); ?>" />
@@ -175,7 +176,7 @@ function pvs_save_post_security($object_id, $role, $object_type) {
 
 function pvs_in_database($object_id, $object_type) {
     global $wpdb;
-    
+
     $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
                                             WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = '" . $object_type . "';"));
 
@@ -203,9 +204,54 @@ function pvs_where_security($where) {
     return $where;
 }
 
-function pvs_exclude_categories($args) {
-    throw new Exception("test");
-    $args['exclude'] = array(6);
+function pvs_filter_categories($categories) {
+    global $wpdb;
+    
+    if (!is_user_logged_in())
+        return $categories;
 
-    return $args;
+    $post_types = get_option('pv_security_options');
+
+    $last_type = array_pop($post_types);
+
+    $in_string = '';
+
+    foreach ($post_types as $type) {
+        $in_string .= " '$type', ";
+    }
+    
+    $in_string .= "'$last_type'";
+
+    $sql = $wpdb->prepare("select t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
+                            from $wpdb->posts p
+                            left join " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.`object_id`
+                                    and pvs.`object_type` = 'post'
+                            left join `wp_term_relationships` tr on p.ID = tr.`object_id`
+                            left join `wp_term_taxonomy` tt on tr.`term_taxonomy_id` = tt.`term_taxonomy_id`
+                            left join `wp_terms` t on tt.`term_id` = t.`term_id`
+                            where 1=1
+                            and tt.taxonomy = 'category'
+                            and p.post_type IN ($in_string)
+                            and p.post_status = 'publish'
+                            and pvs.object_id is null
+                            group by t.term_id;");
+    
+    $results = $wpdb->get_results($sql);
+    
+    for($i = 0; $i < count($categories) - 1; $i++) {
+        
+        foreach ($results as $result) {
+            
+            if ($categories[$i]->term_id == $result->cat_id)
+            {
+                break;
+            }
+                        
+        }
+        
+        unset($categories[$i]);
+        
+    }
+    
+    return $categories;
 }
