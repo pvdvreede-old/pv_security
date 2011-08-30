@@ -115,7 +115,7 @@ function pvs_render_post_security_meta_box($post) {
     // Use nonce for verification
     wp_nonce_field(plugin_basename(__FILE__), 'pv_security_noncename');
 
-    $output = '<p>Select which user roles can see this post. Not selecting any means the whole world can see it.</p>';
+    $output = '<p>Select whether this post is public (the whole world can see it) or for members only (only valid users logged in can see it).</p>';
 
     $membership = pvs_in_database($post->ID, 'post');
 
