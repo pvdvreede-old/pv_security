@@ -13,6 +13,7 @@ global $wpdb;
 DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
 
 register_activation_hook(__FILE__, 'pvs_install');
+register_uninstall_hook(__FILE__, 'pvs_uninstall');
 
 add_action('add_meta_boxes', 'pvs_add_post_meta_box');
 add_action('save_post', 'pvs_save_post_security_data');
@@ -35,8 +36,7 @@ function pvs_install() {
       role varchar(25) NOT NULL,
       object_id mediumint(9) NOT NULL,
       object_type varchar(25) NOT NULL,
-      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-      modified_date datetime NULL,
+      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL
 	  PRIMARY KEY  id (ID)
 	);";
 
