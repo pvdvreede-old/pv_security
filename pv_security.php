@@ -147,15 +147,18 @@ function pvs_save_post_security_data($post_id) {
 
     if ($_POST['pv_security_role'] == 'members')
         pvs_save_post_security($post_id, 'members', 'post');
+    elseif ($_POST['pv_security_role'] == 'public') 
+        pvs_delete_post_security_data($post_id, 'post');
+    
+        
 }
 
-function pvs_delete_post_security_data($post_id) {
+function pvs_delete_post_security_data($post_id, $type) {
     global $wpdb;
 
-    $sql = "DELETE FROM " . PV_SECURITY_TABLENAME . " as pvs WHERE pvs.object_id = " . $post_id . " ";
-    $sql .= "AND pvs.object_type = 'post' ";
-
-    $sql = $wpdb->prepare($sql);
+    $sql = $wpdb->prepare("DELETE FROM " . PV_SECURITY_TABLENAME . " 
+                           WHERE object_id = $post_id 
+                           AND object_type = '$type' ");
 
     $wpdb->query($sql);
 }
