@@ -219,9 +219,13 @@ function pvs_where_security($where) {
     return $where;
 }
 
-function pvs_add_post_columns($posts_columns, $post_type) {
+function pvs_add_post_columns($posts_columns) {
+    global $post;
     
-    $posts_columns['pvs_security'] = 'Security';
+    $post_types = get_option('pv_security_options');
+
+    if (in_array($post->post_type, $post_types))   
+        $posts_columns['pvs_security'] = 'Security';
     
     return $posts_columns;
 }
