@@ -1,12 +1,11 @@
 <?php
 /*
-  Plugin Name: pv_Security
+  Plugin Name: Security
   Plugin URI: http://www.vdvreede.net
   Description: Adds user role security to posts and categories.
   Version: 0.5
   Author: Paul Van de Vreede
   Author URI: http://www.vdvreede.net
-  License: GPL2
  */
 global $wpdb;
 
@@ -36,7 +35,7 @@ function pvs_install() {
       role varchar(25) NOT NULL,
       object_id mediumint(9) NOT NULL,
       object_type varchar(25) NOT NULL,
-      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL
+      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
 	  PRIMARY KEY  id (ID)
 	);";
 
@@ -120,8 +119,8 @@ function pvs_render_post_security_meta_box($post) {
     $membership = pvs_in_database($post->ID, 'post');
 
     $roles = array(
-        'public' => true,
-        'members' => false
+        'public' => !$membership,
+        'members' => $membership
     );
 
     foreach ($roles as $role => $member) {
