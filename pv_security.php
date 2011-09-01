@@ -58,7 +58,8 @@ function pvs_uninstall() {
 }
 
 function pvs_add_style_sheet() {
-    echo "<link rel='stylesheet' type='text/css' href='". plugins_url('style.css', __FILE__)."' />";
+    if (strlen(strstr($_SERVER['REQUEST_URI'], 'wp-admin/edit.php')))
+        echo "<link rel='stylesheet' type='text/css' href='". plugins_url('style.css', __FILE__)."' />";
 }
 
 function pvs_add_settings_page() {
