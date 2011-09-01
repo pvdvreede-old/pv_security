@@ -62,7 +62,7 @@ function pvs_init_settings() {
 }
 
 function pvs_section_text() {
-    
+  
 }
 
 function pvs_post_type_setting() {
@@ -180,7 +180,8 @@ function pvs_in_database($object_id, $object_type) {
     global $wpdb;
 
     $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
-                                            WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = '" . $object_type . "';"));
+                                            WHERE pvs.object_id = $object_id 
+                                            AND pvs.object_type = '$object_type'"));
 
     return ($count > 0);
 }
@@ -190,7 +191,7 @@ function pvs_join_security($join) {
 
     if (!is_user_logged_in()) {
         $join .= " LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs ON " . $wpdb->posts . ".ID = pvs.object_id ";
-        $join .= "AND pvs.object_type = 'post' ";
+        $join .= " AND pvs.object_type = 'post' ";
     }
 
     return $join;
@@ -224,19 +225,18 @@ function pvs_filter_categories($categories) {
     
     $in_string .= "'$last_type'";
 
-    $sql = $wpdb->prepare("select t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
-                            from $wpdb->posts p
-                            left join " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.`object_id`
-                                    and pvs.`object_type` = 'post'
-                            left join `wp_term_relationships` tr on p.ID = tr.`object_id`
-                            left join `wp_term_taxonomy` tt on tr.`term_taxonomy_id` = tt.`term_taxonomy_id`
-                            left join `wp_terms` t on tt.`term_id` = t.`term_id`
-                            where 1=1
-                            and tt.taxonomy = 'category'
-                            and p.post_type IN ($in_string)
-                            and p.post_status = 'publish'
-                            and pvs.object_id is null
-                            group by t.term_id;");
+    $sql = $wpdb->prepare("SELECT t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
+                           FROM $wpdb->posts p
+                           LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.object_id
+                                    AND pvs.object_type = 'post'
+                           LEFT JOIN $wpdb->term_relationships tr ON p.ID = tr.object_id
+                           LEFT JOIN $wpdb->term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                           LEFT JOIN $wpdb->terms t on tt.term_id = t.term_id
+                           WHERE tt.taxonomy = 'category'
+                            AND p.post_type IN ($in_string)
+                            AND p.post_status = 'publish'
+                            AND pvs.object_id is null
+                            GROUP BY t.term_id;");
     
     $results = $wpdb->get_results($sql);
     
