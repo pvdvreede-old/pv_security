@@ -209,8 +209,9 @@ function pvs_where_security($where) {
 
 function pvs_filter_categories($categories) {
     global $wpdb;
+    global $pvs_cat_results;
     
-    if (!is_user_logged_in())
+    if (is_user_logged_in())
         return $categories;
 
     $post_types = get_option('pv_security_options');
@@ -236,24 +237,26 @@ function pvs_filter_categories($categories) {
                             AND p.post_type IN ($in_string)
                             AND p.post_status = 'publish'
                             AND pvs.object_id is null
-                            GROUP BY t.term_id;");
+                            GROUP BY t.term_id;");    
     
-    $results = $wpdb->get_results($sql);
+    $pvs_cat_results = $wpdb->get_results($sql);
     
-    for($i = 0; $i < count($categories) - 1; $i++) {
+    $filtered_categories = array_filter($categories, 'pvs_cat_filter');
+    
+    unset($pvs_cat_results);
+    
+    return $filtered_categories;
+}
+
+function pvs_cat_filter($cat_obj) {
+    global $pvs_cat_results;
+    
+    foreach ($pvs_cat_results as $result) {
         
-        foreach ($results as $result) {
-            
-            if ($categories[$i]->term_id == $result->cat_id)
-            {
-                break;
-            }
-                        
-        }
-        
-        unset($categories[$i]);
+        if ($cat_obj->term_id == $result->cat_id)
+            return true;
         
     }
     
-    return $categories;
+    return false;
 }
