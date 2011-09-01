@@ -7,6 +7,7 @@
   Author: Paul Van de Vreede
   Author URI: http://www.vdvreede.net
  */
+
 global $wpdb;
 
 DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
@@ -27,17 +28,22 @@ add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
 add_filter('list_cats_exlusions', 'pvs_exclude_categories');
 
+add_filter('manage_posts_columns', 'pvs_add_post_columns');
+add_action('manage_posts_custom_column', 'pvs_display_post_columns');
+
+add_action('admin_head', 'pvs_add_style_sheet');
+
 function pvs_install() {
     global $wpdb;
 
     $sql = "CREATE TABLE " . PV_SECURITY_TABLENAME . " (
-      ID mediumint(9) NOT NULL AUTO_INCREMENT,
-      role varchar(25) NOT NULL,
-      object_id mediumint(9) NOT NULL,
-      object_type varchar(25) NOT NULL,
-      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
-	  PRIMARY KEY  id (ID)
-	);";
+              ID mediumint(9) NOT NULL AUTO_INCREMENT,
+              role varchar(25) NOT NULL,
+              object_id mediumint(9) NOT NULL,
+              object_type varchar(25) NOT NULL,
+              created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                  PRIMARY KEY  id (ID)
+                );";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
@@ -49,6 +55,10 @@ function pvs_uninstall() {
     $sql = $wpdb->prepare("DROP TABLE " . PV_SECURITY_TABLENAME . ";");
 
     $wpdb->query($sql);
+}
+
+function pvs_add_style_sheet() {
+    echo "<link rel='stylesheet' type='text/css' href='". plugins_url('style.css', __FILE__)."' />";
 }
 
 function pvs_add_settings_page() {
@@ -179,9 +189,11 @@ function pvs_save_post_security($object_id, $role, $object_type) {
 function pvs_in_database($object_id, $object_type) {
     global $wpdb;
 
-    $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
-                                            WHERE pvs.object_id = $object_id 
-                                            AND pvs.object_type = '$object_type'"));
+    $sql = $wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " 
+                            WHERE object_id = $object_id 
+                            AND object_type = '$object_type'");
+    
+    $count = $wpdb->get_var($sql);
 
     return ($count > 0);
 }
@@ -205,6 +217,27 @@ function pvs_where_security($where) {
     }
 
     return $where;
+}
+
+function pvs_add_post_columns($posts_columns, $post_type) {
+    
+    $posts_columns['pvs_security'] = 'Security';
+    
+    return $posts_columns;
+}
+
+function pvs_display_post_columns($column_name) {
+    global $post;
+    
+    if ($column_name == 'pvs_security') {
+        
+        if (pvs_in_database($post->ID, 'post'))
+            echo 'Members';
+        else
+            echo 'Public';
+        
+    }
+    
 }
 
 function pvs_filter_categories($categories) {
