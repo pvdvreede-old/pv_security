@@ -50,15 +50,14 @@ if (is_user_logged_in() || (!is_user_logged_in() && is_file_secure($filename))) 
 function is_file_secure($filename) {
     global $wpdb;
     
-    $sql = $wpdb->prepare("select COUNT(*) as count
-                            from wp_posts p
-                            inner join wp_posts a on p.ID = a.post_parent
-                            inner join wp_postmeta pm on a.ID = pm.post_id
-                                    and pm.meta_key = '_wp_attached_file'
-                            left join wp_pvs_user_item pvs on p.ID = pvs.object_id
-                            where 1=1
-                            and pvs.object_id is null
-                            and pm.meta_value = '$filename';");
+    $sql = $wpdb->prepare("SELECT COUNT(*) as count
+                           FROM $wpdb->posts p
+                           INNER JOIN $wpdb->posts a on p.ID = a.post_parent
+                           INNER JOIN $wpdb->postmeta pm on a.ID = pm.post_id
+                             AND pm.meta_key = '_wp_attached_file'
+                           LEFT JOIN " . $wpdb->prefix . "pvs_user_item pvs on p.ID = pvs.object_id
+                           WHERE pvs.object_id is null
+                            AND pm.meta_value = '$filename';");
     
     $count = $wpdb->get_var($sql);
     
