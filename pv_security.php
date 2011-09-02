@@ -1,13 +1,13 @@
 <?php
 /*
-  Plugin Name: pv_Security
+  Plugin Name: Security
   Plugin URI: http://www.vdvreede.net
   Description: Adds user role security to posts and categories.
   Version: 0.5
   Author: Paul Van de Vreede
   Author URI: http://www.vdvreede.net
-  License: GPL2
  */
+
 global $wpdb;
 
 DEFINE('PV_SECURITY_TABLENAME', $wpdb->prefix . 'pvs_user_item');
@@ -28,17 +28,22 @@ add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
 add_filter('list_cats_exlusions', 'pvs_exclude_categories');
 
+add_filter('manage_posts_columns', 'pvs_add_post_columns');
+add_action('manage_posts_custom_column', 'pvs_display_post_columns');
+
+add_action('admin_head', 'pvs_add_style_sheet');
+
 function pvs_install() {
     global $wpdb;
 
     $sql = "CREATE TABLE " . PV_SECURITY_TABLENAME . " (
-      ID mediumint(9) NOT NULL AUTO_INCREMENT,
-      role varchar(25) NOT NULL,
-      object_id mediumint(9) NOT NULL,
-      object_type varchar(25) NOT NULL,
-      created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL
-	  PRIMARY KEY  id (ID)
-	);";
+              ID mediumint(9) NOT NULL AUTO_INCREMENT,
+              role varchar(25) NOT NULL,
+              object_id mediumint(9) NOT NULL,
+              object_type varchar(25) NOT NULL,
+              created_date datetime DEFAULT '0000-00-00 00:00:00' NOT NULL,
+                  PRIMARY KEY  id (ID)
+                );";
 
     require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
     dbDelta($sql);
@@ -52,6 +57,11 @@ function pvs_uninstall() {
     $wpdb->query($sql);
 }
 
+function pvs_add_style_sheet() {
+    if (strlen(strstr($_SERVER['REQUEST_URI'], 'wp-admin/edit.php')))
+        echo "<link rel='stylesheet' type='text/css' href='". plugins_url('style.css', __FILE__)."' />";
+}
+
 function pvs_add_settings_page() {
     add_options_page('Security', 'Security', 'administrator', __FILE__, 'pvs_options_page');
 }
@@ -63,7 +73,7 @@ function pvs_init_settings() {
 }
 
 function pvs_section_text() {
-    
+  
 }
 
 function pvs_post_type_setting() {
@@ -120,8 +130,8 @@ function pvs_render_post_security_meta_box($post) {
     $membership = pvs_in_database($post->ID, 'post');
 
     $roles = array(
-        'public' => true,
-        'members' => false
+        'public' => !$membership,
+        'members' => $membership
     );
 
     foreach ($roles as $role => $member) {
@@ -148,15 +158,18 @@ function pvs_save_post_security_data($post_id) {
 
     if ($_POST['pv_security_role'] == 'members')
         pvs_save_post_security($post_id, 'members', 'post');
+    elseif ($_POST['pv_security_role'] == 'public') 
+        pvs_delete_post_security_data($post_id, 'post');
+    
+        
 }
 
-function pvs_delete_post_security_data($post_id) {
+function pvs_delete_post_security_data($post_id, $type) {
     global $wpdb;
 
-    $sql = "DELETE FROM " . PV_SECURITY_TABLENAME . " as pvs WHERE pvs.object_id = " . $post_id . " ";
-    $sql .= "AND pvs.object_type = 'post' ";
-
-    $sql = $wpdb->prepare($sql);
+    $sql = $wpdb->prepare("DELETE FROM " . PV_SECURITY_TABLENAME . " 
+                           WHERE object_id = $post_id 
+                           AND object_type = '$type' ");
 
     $wpdb->query($sql);
 }
@@ -177,8 +190,11 @@ function pvs_save_post_security($object_id, $role, $object_type) {
 function pvs_in_database($object_id, $object_type) {
     global $wpdb;
 
-    $count = $wpdb->get_var($wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " as pvs 
-                                            WHERE pvs.object_id = " . $object_id . " AND pvs.object_type = '" . $object_type . "';"));
+    $sql = $wpdb->prepare("SELECT COUNT(*) FROM " . PV_SECURITY_TABLENAME . " 
+                            WHERE object_id = $object_id 
+                            AND object_type = '$object_type'");
+    
+    $count = $wpdb->get_var($sql);
 
     return ($count > 0);
 }
@@ -188,7 +204,7 @@ function pvs_join_security($join) {
 
     if (!is_user_logged_in()) {
         $join .= " LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs ON " . $wpdb->posts . ".ID = pvs.object_id ";
-        $join .= "AND pvs.object_type = 'post' ";
+        $join .= " AND pvs.object_type = 'post' ";
     }
 
     return $join;
@@ -204,10 +220,36 @@ function pvs_where_security($where) {
     return $where;
 }
 
+function pvs_add_post_columns($posts_columns) {
+    global $post;
+    
+    $post_types = get_option('pv_security_options');
+
+    if (in_array($post->post_type, $post_types))   
+        $posts_columns['pvs_security'] = 'Security';
+    
+    return $posts_columns;
+}
+
+function pvs_display_post_columns($column_name) {
+    global $post;
+    
+    if ($column_name == 'pvs_security') {
+        
+        if (pvs_in_database($post->ID, 'post'))
+            echo 'Members';
+        else
+            echo 'Public';
+        
+    }
+    
+}
+
 function pvs_filter_categories($categories) {
     global $wpdb;
+    global $pvs_cat_results;
     
-    if (!is_user_logged_in())
+    if (is_user_logged_in())
         return $categories;
 
     $post_types = get_option('pv_security_options');
@@ -222,36 +264,37 @@ function pvs_filter_categories($categories) {
     
     $in_string .= "'$last_type'";
 
-    $sql = $wpdb->prepare("select t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
-                            from $wpdb->posts p
-                            left join " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.`object_id`
-                                    and pvs.`object_type` = 'post'
-                            left join `wp_term_relationships` tr on p.ID = tr.`object_id`
-                            left join `wp_term_taxonomy` tt on tr.`term_taxonomy_id` = tt.`term_taxonomy_id`
-                            left join `wp_terms` t on tt.`term_id` = t.`term_id`
-                            where 1=1
-                            and tt.taxonomy = 'category'
-                            and p.post_type IN ($in_string)
-                            and p.post_status = 'publish'
-                            and pvs.object_id is null
-                            group by t.term_id;");
+    $sql = $wpdb->prepare("SELECT t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
+                           FROM $wpdb->posts p
+                           LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.object_id
+                                    AND pvs.object_type = 'post'
+                           LEFT JOIN $wpdb->term_relationships tr ON p.ID = tr.object_id
+                           LEFT JOIN $wpdb->term_taxonomy tt ON tr.term_taxonomy_id = tt.term_taxonomy_id
+                           LEFT JOIN $wpdb->terms t on tt.term_id = t.term_id
+                           WHERE tt.taxonomy = 'category'
+                            AND p.post_type IN ($in_string)
+                            AND p.post_status = 'publish'
+                            AND pvs.object_id is null
+                            GROUP BY t.term_id;");    
     
-    $results = $wpdb->get_results($sql);
+    $pvs_cat_results = $wpdb->get_results($sql);
     
-    for($i = 0; $i < count($categories) - 1; $i++) {
+    $filtered_categories = array_filter($categories, 'pvs_cat_filter');
+    
+    unset($pvs_cat_results);
+    
+    return $filtered_categories;
+}
+
+function pvs_cat_filter($cat_obj) {
+    global $pvs_cat_results;
+    
+    foreach ($pvs_cat_results as $result) {
         
-        foreach ($results as $result) {
-            
-            if ($categories[$i]->term_id == $result->cat_id)
-            {
-                break;
-            }
-                        
-        }
-        
-        unset($categories[$i]);
+        if ($cat_obj->term_id == $result->cat_id)
+            return true;
         
     }
     
-    return $categories;
+    return false;
 }
