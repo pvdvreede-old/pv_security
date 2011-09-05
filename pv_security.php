@@ -263,7 +263,8 @@ function pvs_filter_categories($categories) {
     }
     
     $in_string .= "'$last_type'";
-
+    
+    // get all categories that do NOT have private posts in them.
     $sql = $wpdb->prepare("SELECT t.name as cat_name, t.term_id as cat_id, COUNT(*) as count
                            FROM $wpdb->posts p
                            LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs on p.ID = pvs.object_id
@@ -278,6 +279,13 @@ function pvs_filter_categories($categories) {
                             GROUP BY t.term_id;");    
     
     $pvs_cat_results = $wpdb->get_results($sql);
+    
+    // need to be careful when there are no categories, as this will effect sending categories back when hide_empty is false
+    if (count($pvs_cat_results) == 0) {
+        unset($pvs_cat_results);
+        // just return all categories if there were none without private posts, as we cant tell which ones to hide.
+        return $categories;
+    }
     
     $filtered_categories = array_filter($categories, 'pvs_cat_filter');
     
