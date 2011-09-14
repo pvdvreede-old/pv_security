@@ -10,9 +10,39 @@ $filename = $_GET['filename'];
 
 require_once(dirname(__FILE__) . '/../../../wp-load.php');
 
-if (is_user_logged_in() || (!is_user_logged_in() && is_file_secure($filename))) {
+if (is_user_logged_in() || (!is_user_logged_in() && ) {
+	give_file($filename);
+    
+} else {
+	if (!is_file_secure($filename)) {
+		give_file($filename);
+	} else {
 
-    // If the user is logged in they can download any files, so dont check anymore.
+		// If the user isnt logged in, then redirect the site to the login page.
+		header('Location: ' . get_bloginfo('url') . '/wp-login.php');
+    }
+}
+
+function is_file_secure($filename) {
+    global $wpdb;
+    
+    $sql = $wpdb->prepare("SELECT COUNT(*) as count
+                           FROM $wpdb->posts p
+                           INNER JOIN $wpdb->posts a on p.ID = a.post_parent
+                           INNER JOIN $wpdb->postmeta pm on a.ID = pm.post_id
+                             AND pm.meta_key = '_wp_attached_file'
+                           LEFT JOIN " . $wpdb->prefix . "pvs_user_item pvs on p.ID = pvs.object_id
+                           WHERE pvs.object_id is null
+                            AND pm.meta_value = '$filename';");
+    
+    $count = $wpdb->get_var($sql);
+    
+    return $count > 0;
+    
+}
+
+function give_file($filename) {
+	// If the user is logged in they can download any files, so dont check anymore.
     // get the uploads path to attach to the filename
     $middle_path = get_option('upload_path');
 
@@ -42,27 +72,6 @@ if (is_user_logged_in() || (!is_user_logged_in() && is_file_secure($filename))) 
     header("Content-Length: " . filesize($full_filename));
 
     readfile("$full_filename");
-} else {
-    // If the user isnt logged in, then redirect the site to the login page.
-    header('Location: ' . get_bloginfo('url') . '/wp-login.php');
-}
-
-function is_file_secure($filename) {
-    global $wpdb;
-    
-    $sql = $wpdb->prepare("SELECT COUNT(*) as count
-                           FROM $wpdb->posts p
-                           INNER JOIN $wpdb->posts a on p.ID = a.post_parent
-                           INNER JOIN $wpdb->postmeta pm on a.ID = pm.post_id
-                             AND pm.meta_key = '_wp_attached_file'
-                           LEFT JOIN " . $wpdb->prefix . "pvs_user_item pvs on p.ID = pvs.object_id
-                           WHERE pvs.object_id is null
-                            AND pm.meta_value = '$filename';");
-    
-    $count = $wpdb->get_var($sql);
-    
-    return $count > 0;
-    
 }
 
 
