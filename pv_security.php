@@ -164,7 +164,7 @@ function pvs_save_post_security_data($post_id) {
         
 }
 
-function pvs_delete_post_security_data($post_id, $type) {
+function pvs_delete_post_security_data($post_id, $type='None') {
     global $wpdb;
 
     $sql = $wpdb->prepare("DELETE FROM " . PV_SECURITY_TABLENAME . " 
