@@ -10,7 +10,7 @@ $filename = $_GET['filename'];
 
 require_once(dirname(__FILE__) . '/../../../wp-load.php');
 
-if (is_user_logged_in() || (!is_user_logged_in() && ) {
+if (is_user_logged_in()) {
 	give_file($filename);
     
 } else {
