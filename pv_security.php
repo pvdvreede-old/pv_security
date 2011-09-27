@@ -70,12 +70,38 @@ function pvs_add_settings_page() {
 
 function pvs_init_settings() {
     register_setting('pv_security_options', 'pv_security_options');
+    register_setting('pv_security_options', 'pv_security_method');
     add_settings_section('main_section', 'Main Settings', 'pvs_section_text', __FILE__);
     add_settings_field('pvs_post_types', 'Post types', 'pvs_post_type_setting', __FILE__, 'main_section');
+    add_settings_field('pvs_secure_type', 'Secure method', 'pvs_secure_type_setting', __FILE__, 'main_section');
 }
 
 function pvs_section_text() {
   
+}
+
+/**
+ * Renders setting for method securing type, which is either hiding secure posts
+ * from the public, or displaying a 'login required' message on it.
+ */
+function pvs_secure_type_setting() {
+    $option = get_option('pv_security_method');
+    
+    $hidden = '';
+    $displayed = '';
+    
+    switch($option) {
+        case 'hidden':
+            $hidden = 'checked';
+            break;
+        case 'displayed':
+            $displayed = 'checked';
+            break;
+    }
+    
+    
+    echo "<p><input type='radio' name='pv_security_method' value='hidden' {$hidden} /> Hidden</p>";
+    echo "<p><input type='radio' name='pv_security_method' value='displayed' {$displayed} /> Displayed</p>";
 }
 
 function pvs_post_type_setting() {
