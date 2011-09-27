@@ -28,6 +28,8 @@ add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
 add_filter('list_cats_exlusions', 'pvs_exclude_categories');
 
+add_filter('the_content', 'pvs_filter_content');
+
 add_filter('manage_posts_columns', 'pvs_add_post_columns');
 add_action('manage_posts_custom_column', 'pvs_display_post_columns');
 
@@ -92,6 +94,29 @@ function pvs_post_type_setting() {
 
         echo "<p><input type='checkbox' name='pv_security_options[]' value='{$type}' {$checked} />  " . ucwords($type) . "</p>";
     }
+}
+
+/**
+ * Renders the content of each post based on its security.
+ * 
+ * @global type $post
+ * @param string the post content
+ * @return string the post content filtered
+ */
+function pvs_filter_content($content) {
+    global $post;
+    
+    if (is_user_logged_in()) {
+        return $content;
+    }
+    
+    if (!pvs_in_database($post->ID, 'post')) {
+        return $content;
+    }
+    
+    $content = '<p>You must be a member and be signed in to view this page.</p>';
+    
+    return $content;        
 }
 
 function pvs_options_page() {
