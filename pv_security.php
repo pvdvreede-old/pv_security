@@ -28,7 +28,7 @@ add_filter('posts_join', 'pvs_join_security');
 add_filter('posts_where', 'pvs_where_security');
 add_filter('list_cats_exlusions', 'pvs_exclude_categories');
 
-add_filter('the_content', 'pvs_filter_content');
+add_filter('the_content', 'pvs_filter_content', 999);
 
 add_filter('manage_posts_columns', 'pvs_add_post_columns');
 add_action('manage_posts_custom_column', 'pvs_display_post_columns');
@@ -77,7 +77,7 @@ function pvs_init_settings() {
 }
 
 function pvs_section_text() {
-  
+    
 }
 
 /**
@@ -132,13 +132,15 @@ function pvs_post_type_setting() {
 function pvs_filter_content($content) {
     global $post;
     
-    if (is_user_logged_in()) {
+    if (get_option('pv_security_method') == 'hidden')
         return $content;
-    }
     
-    if (!pvs_in_database($post->ID, 'post')) {
+    if (is_user_logged_in()) 
         return $content;
-    }
+       
+    if (!pvs_in_database($post->ID, 'post')) 
+        return $content;
+    
     
     $content = '<p>You must be a member and be signed in to view this page.</p>';
     
@@ -252,7 +254,10 @@ function pvs_in_database($object_id, $object_type) {
 
 function pvs_join_security($join) {
     global $wpdb;
-
+    
+    if (get_option('pv_security_method') == 'displayed')
+        return $join;
+    
     if (!is_user_logged_in()) {
         $join .= " LEFT JOIN " . PV_SECURITY_TABLENAME . " pvs ON " . $wpdb->posts . ".ID = pvs.object_id ";
         $join .= " AND pvs.object_type = 'post' ";
@@ -263,7 +268,10 @@ function pvs_join_security($join) {
 
 function pvs_where_security($where) {
     global $wpdb;
-
+    
+    if (get_option('pv_security_method') == 'displayed')
+        return $where;
+    
     if (!is_user_logged_in()) {
         $where .= " AND pvs.object_id IS NULL ";
     }
@@ -299,6 +307,10 @@ function pvs_display_post_columns($column_name) {
 function pvs_filter_categories($categories) {
     global $wpdb;
     global $pvs_cat_results;
+    
+    // if the post secure method is displayed, then forget about hidding cats
+    if (get_option('pv_security_method') == 'displayed')
+        return $categories;
     
     if (is_user_logged_in())
         return $categories;
