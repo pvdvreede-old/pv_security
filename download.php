@@ -37,7 +37,7 @@ function pvs_is_file_secure($filename) {
     
     $count = $wpdb->get_var($sql);
     
-    return $count > 0;
+    return ($count == 0);
     
 }
 
