@@ -11,11 +11,11 @@ $filename = $_GET['filename'];
 require_once(dirname(__FILE__) . '/../../../wp-load.php');
 
 if (is_user_logged_in()) {
-	give_file($filename);
+	pvs_give_file($filename);
     
 } else {
-	if (!is_file_secure($filename)) {
-		give_file($filename);
+	if (!pvs_is_file_secure($filename)) {
+		pvs_give_file($filename);
 	} else {
 
 		// If the user isnt logged in, then redirect the site to the login page.
@@ -23,7 +23,7 @@ if (is_user_logged_in()) {
     }
 }
 
-function is_file_secure($filename) {
+function pvs_is_file_secure($filename) {
     global $wpdb;
     
     $sql = $wpdb->prepare("SELECT COUNT(*) as count
@@ -41,7 +41,7 @@ function is_file_secure($filename) {
     
 }
 
-function give_file($filename) {
+function pvs_give_file($filename) {
 	// If the user is logged in they can download any files, so dont check anymore.
     // get the uploads path to attach to the filename
     $middle_path = get_option('upload_path');
