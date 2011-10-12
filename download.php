@@ -19,7 +19,7 @@ if (is_user_logged_in()) {
 	} else {
 
 		// If the user isnt logged in, then redirect the site to the login page.
-		header('Location: ' . get_bloginfo('url') . '/wp-login.php');
+		header('Location: ' . get_bloginfo('url'));
     }
 }
 
