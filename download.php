@@ -12,31 +12,33 @@ require_once(dirname(__FILE__) . '/../../../wp-load.php');
 
 if (is_user_logged_in()) {
 	pvs_give_file($filename);
-    
 } else {
-	if (!pvs_is_file_secure($filename)) {
-		pvs_give_file($filename);
+	if (pvs_is_file_secure($filename)) {
+		Header('Location: ' . get_bloginfo('url'));	
 	} else {
-
-		// If the user isnt logged in, then redirect the site to the login page.
-		header('Location: ' . get_bloginfo('url'));
-    }
+		pvs_give_file($filename);
+    	}
 }
 
 function pvs_is_file_secure($filename) {
     global $wpdb;
     
+    // the meta value doesnt have the starting slash, so remove if there to match.
+    if (substr($filename, 0, 1) == '/') {
+       $filename = substr($filename, 1);
+    }
+
     $sql = $wpdb->prepare("SELECT COUNT(*) as count
-                           FROM $wpdb->posts p
-                           INNER JOIN $wpdb->posts a on p.ID = a.post_parent
-                           INNER JOIN $wpdb->postmeta pm on a.ID = pm.post_id
+                           FROM {$wpdb->posts} p
+                           INNER JOIN {$wpdb->posts} a on p.ID = a.post_parent
+                           INNER JOIN {$wpdb->postmeta} pm on a.ID = pm.post_id
                              AND pm.meta_key = '_wp_attached_file'
                            LEFT JOIN " . $wpdb->prefix . "pvs_user_item pvs on p.ID = pvs.object_id
                            WHERE pvs.object_id is null
-                            AND pm.meta_value = '$filename';");
+                            AND pm.meta_value = '{$filename}';");
     
     $count = $wpdb->get_var($sql);
-    
+
     return ($count == 0);
     
 }
